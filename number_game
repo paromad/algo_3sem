@@ -1,0 +1,121 @@
+/* Витя хочет придумать новую игру с числами. В этой игре от игроков требуется преобразовывать четырехзначные числа не содержащие нулей при помощи следующего разрешенного набора действий:
+
+Можно увеличить первую цифру числа на 1, если она не равна 9.
+Можно уменьшить последнюю цифру на 1, если она не равна 1.
+Можно циклически сдвинуть все цифры на одну вправо.
+Можно циклически сдвинуть все цифры на одну влево.
+Например, применяя эти правила к числу 1234 можно получить числа 2234, 1233, 4123 и 2341 соответственно. Точные правила игры Витя пока не придумал, но пока его интересует вопрос, как получить из одного числа другое за минимальное количество операций.
+
+Формат ввода
+Во входном файле содержится два различных четырехзначных числа, каждое из которых не содержит нулей.
+
+Формат вывода
+В первой строке вывода должна быть длина оптимальной последовательности чисел, которая описана ниже.
+
+На второй строке необходимо вывести последовательность четырехзначных чисел, не содержащих нулей. Последовательность должна начинаться первым из данных чисел и заканчиваться вторым из данных чисел, каждое последующее число в последовательности должно быть получено из предыдущего числа применением одного из правил. Количество чисел в последовательности должно быть минимально возможным. */
+
+#include<iostream>
+#include<queue>
+#include <vector>
+
+using namespace std;
+
+struct Number {
+    int a_;
+    int b_;
+    int c_;
+    int d_;
+
+    Number() : a_(0), b_(0), c_(0), d_(0) {};
+
+    Number(int a, int b, int c, int d) : a_(a), b_(b), c_(c), d_(d) {};
+
+    Number(int num) {
+        d_ = num % 10;
+        num /= 10;
+        c_ = num % 10;
+        num /= 10;
+        b_ = num % 10;
+        a_ = num / 10;
+    };
+
+    bool operator==(const Number &other) const {
+        return a_ == other.a_ && b_ == other.b_ && c_ == other.c_ && d_ == other.d_;
+    }
+
+    friend ostream &operator<<(ostream &os, const Number &number) {
+        os << number.a_ << number.b_ << number.c_ << number.d_ << "\n";
+        return os;
+    }
+};
+
+int number_hash(const Number &number) {
+    return (number.a_ - 1) * 1000 + number.b_ * 100 + number.c_ * 10 + number.d_;
+}
+
+Number back_hash(int number) {
+    return Number(number + 1000);
+}
+
+vector<Number> neighbours(const Number &v) {
+    vector<Number> res;
+    if (v.a_ != 9) res.push_back(Number(v.a_ + 1, v.b_, v.c_, v.d_));
+    if (v.d_ != 1) res.push_back(Number(v.a_, v.b_, v.c_, v.d_ - 1));
+    res.push_back(Number(v.b_, v.c_, v.d_, v.a_));
+    res.push_back(Number(v.d_, v.a_, v.b_, v.c_));
+    return res;
+}
+
+void BFS(const Number &start, const Number &finish, vector<int> &distances, vector<Number> &parents) {
+    queue<Number> que;
+    que.push(start);
+    distances[number_hash(start)] = 0;
+    while (!que.empty()) {
+        Number v = que.front();
+        que.pop();
+        vector<Number> neigh = neighbours(v);
+        for (Number u : neigh) {
+            if (distances[number_hash(u)] > distances[number_hash(v)] + 1) {
+                distances[number_hash(u)] = distances[number_hash(v)] + 1;
+                parents[number_hash(u)] = v;
+                if (u == finish) {
+                    return;
+                }
+                que.push(u);
+            }
+        }
+    }
+}
+
+int main() {
+    int x, y;
+
+    cin >> x >> y;
+    Number start{x}, finish{y};
+
+    size_t size = 9000;
+
+    vector<int> distances(size, size + 1);
+    vector<Number> parents(size);
+
+    BFS(start, finish, distances, parents);
+
+    int dist = distances[number_hash(finish)];
+
+    cout << dist + 1<< "\n";
+
+    vector<Number> res(dist + 1);
+
+    res[dist--] = finish;
+
+    while (dist >= 0) {
+        finish = parents[number_hash(finish)];
+        res[dist--] = finish;
+    }
+
+    for (Number i : res) {
+        cout << i;
+    }
+
+    return 0;
+}
